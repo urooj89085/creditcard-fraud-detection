@@ -1,4 +1,4 @@
-# creditcard_fraud_app_final.py
+# creditcard_fraud_app_final_safe.py
 import streamlit as st
 import pandas as pd
 import joblib
@@ -14,11 +14,6 @@ def load_model():
     return model, scaler
 
 model, scaler = load_model()
-
-# Hardcoded feature columns (must match training)
-feature_cols = ['V1','V2','V3','V4','V5','V6','V7','V8','V9','V10',
-                'V11','V12','V13','V14','V15','V16','V17','V18','V19','V20',
-                'V21','V22','V23','V24','V25','V26','V27','V28','Amount']
 
 # ---------------------- Manual Transaction Form ----------------------
 with st.form("transaction_form"):
@@ -36,17 +31,19 @@ with st.form("transaction_form"):
 
 # ---------------------- Predict & Display ----------------------
 if submitted:
+    # Create DataFrame
     transaction = pd.DataFrame([{**V, 'Amount': amount}])
 
-    # Ensure columns match training
-    transaction = transaction[feature_cols]
+    # ---------------------- SAFETY: Match Scaler Columns ----------------------
+    # This ensures the input columns exactly match what the scaler expects
+    transaction = transaction.reindex(columns=scaler.feature_names_in_)
 
-    # Scale features and predict
+    # Scale and predict
     transaction_scaled = scaler.transform(transaction)
     prediction = model.predict(transaction_scaled)[0]
     probability = model.predict_proba(transaction_scaled)[0,1]
 
-    # Display results
+    # ---------------------- Display Results ----------------------
     st.subheader("🔹 Prediction Result")
     if prediction == 1:
         st.error(f"⚠️ Fraud Detected! Probability: {probability:.2f}")
