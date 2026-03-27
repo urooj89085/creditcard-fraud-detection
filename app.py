@@ -1,7 +1,3 @@
-you want the app to work without extra files, we need to remove any reference to feature_columns.pkl and instead hardcode the feature columns in the app.
-
-Here’s a fixed version that won’t fail:
-
 # creditcard_fraud_app_fixed_final.py
 import streamlit as st
 import pandas as pd
@@ -59,3 +55,5 @@ if submitted:
 
     st.subheader("🔹 Transaction Details")
     st.dataframe(transaction)
+
+  
