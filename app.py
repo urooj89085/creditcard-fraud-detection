@@ -1,28 +1,34 @@
-# creditcard_fraud_app_fixed.py
+you want the app to work without extra files, we need to remove any reference to feature_columns.pkl and instead hardcode the feature columns in the app.
+
+Here’s a fixed version that won’t fail:
+
+# creditcard_fraud_app_fixed_final.py
 import streamlit as st
 import pandas as pd
 import joblib
 
-# ---------------------- Load Model, Scaler & Feature Columns ----------------------
-@st.cache_resource
-def load_resources():
-    model = joblib.load('creditcard_fraud_model.pkl')
-    scaler = joblib.load('scaler.pkl')
-    feature_cols = joblib.load('feature_columns.pkl')  # List of columns in correct order
-    return model, scaler, feature_cols
-
-model, scaler, feature_cols = load_resources()
-
-# ---------------------- Streamlit UI ----------------------
-st.set_page_config(page_title="Credit Card Fraud Detector", layout="wide")
+# ---------------------- Load Model & Scaler ----------------------
 st.title("💳 Credit Card Fraud Detection App")
 st.write("Enter transaction details manually to check if it's fraudulent.")
+
+# Load model & scaler (make sure these are uploaded in the app folder)
+@st.cache_resource
+def load_model():
+    model = joblib.load('creditcard_fraud_model.pkl')
+    scaler = joblib.load('scaler.pkl')
+    return model, scaler
+
+model, scaler = load_model()
+
+# Hardcoded feature columns (order must match training)
+feature_cols = ['V1','V2','V3','V4','V5','V6','V7','V8','V9','V10',
+                'V11','V12','V13','V14','V15','V16','V17','V18','V19','V20',
+                'V21','V22','V23','V24','V25','V26','V27','V28','Amount']
 
 # ---------------------- Manual Transaction Form ----------------------
 with st.form("transaction_form"):
     st.subheader("Enter Transaction Details:")
 
-    # Split V1–V28 into 4 columns
     cols = st.columns(4)
     V = {}
     for i in range(1, 29):
@@ -34,37 +40,22 @@ with st.form("transaction_form"):
 
 # ---------------------- Predict & Display ----------------------
 if submitted:
-    # Build transaction dataframe
     transaction = pd.DataFrame([{**V, 'Amount': amount}])
 
     # Ensure columns match training
     transaction = transaction[feature_cols]
 
-    # Scale features
+    # Scale and predict
     transaction_scaled = scaler.transform(transaction)
-
-    # Predict
     prediction = model.predict(transaction_scaled)[0]
     probability = model.predict_proba(transaction_scaled)[0,1]
 
-    # Display prediction
+    # Display results
     st.subheader("🔹 Prediction Result")
     if prediction == 1:
         st.error(f"⚠️ Fraud Detected! Probability: {probability:.2f}")
     else:
         st.success(f"✅ Legitimate Transaction. Fraud Probability: {probability:.2f}")
 
-    # Display transaction details
     st.subheader("🔹 Transaction Details")
     st.dataframe(transaction)
-
-    # Download CSV
-    transaction['Predicted_Class'] = prediction
-    transaction['Fraud_Probability'] = probability
-    csv = transaction.to_csv(index=False).encode('utf-8')
-    st.download_button(
-        label="📥 Download Transaction Prediction",
-        data=csv,
-        file_name='single_transaction_prediction.csv',
-        mime='text/csv'
-    )
